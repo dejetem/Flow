@@ -50,96 +50,82 @@ This project uses a Makefile to simplify common development tasks. The Makefile 
 ### Prerequisites
 
 - Rust and Cargo installed
-- Make utility
+- Node.js and npm/yarn/pnpm
+
+
+### Getting Started
+
+To get started, you need to install dependencies for the `back-end` and `user-interface` projects separately.
+
+1.  **Install front-end dependencies:**
+    Nx can handle this for you by running the `install-all` command from the root directory.
+    ```bash
+    nx install-all user-interface
+    ```
+    This will install the npm packages for both `flow-web` and `flow-app`.
+
+2.  **Build the back-end dependencies:**
+    Building the back-end will fetch and compile all the Rust crates.
+    ```bash
+    nx build back-end
+    ```
+
 
 ### Available Commands
 
-#### Package-Specific Commands
+You can run commands (called "targets") on specific projects using the `nx` CLI from the root of the repository.
 
-These commands require specifying a package using `pkg=<package_name>`:
+#### Back-End Commands (`back-end`)
 
-```bash
-# Run a specific package
-make run pkg=<package_name>
+-   **Run the node:**
+    ```bash
+    nx run-node back-end
+    ```
 
-# Build a specific package (development)
-make build pkg=<package_name>
+-   **Build the node for production:**
+    ```bash
+    nx build back-end
+    ```
 
-# Build a specific package (release/optimized)
-make build-release pkg=<package_name>
-```
+-   **Run tests:**
+    ```bash
+    nx test back-end
+    ```
 
-#### Workspace-Wide Commands
+#### User Interface Commands (`user-interface`)
 
-These commands operate on the entire workspace:
+-   **Install all dependencies for user-interface apps**
+    ```bash
+    nx install-all user-interface
+    ```
 
-```bash
-# Run all tests across the workspace
-make test
+-   **Run the web app in development mode:**
+    ```bash
+    nx dev-web user-interface
+    ```
 
-# Check all packages for compilation errors
-make check
+-   **Run the mobile app in development mode:**
+    ```bash
+    nx dev-mobile user-interface
+    ```
 
-# Clean all build artifacts
-make clean
+-   **Run the desktop app in development mode:**
+    ```bash
+    nx dev-desktop user-interface
+    ```
 
-# Display help information
-make help
-```
+-   **Build all UI applications (web, desktop):**
+    ```bash
+    nx build-all user-interface
+    ```
 
-### Available Packages
 
-The following packages are available in this workspace:
-
-- `node` - Main node implementation
-- `entity` - Entity definitions
-- `errors` - Error handling
-- `event` - Event system
-- `storage` - Storage core functionality
-
-### Usage Examples
-
-```bash
-# Run the main node
-make run pkg=node
-
-# Run with debug logging
-make run pkg=node LOG_LEVEL=debug
-
-# Run with custom log configuration
-make run pkg=node LOG_LEVEL=node=debug,sqlx=warn
-
-# Build the node for development
-make build pkg=node
-
-# Build the node for production
-make build-release pkg=node
-
-# Run all tests
-make test
-
-# Check for compilation errors
-make check
-
-# Clean build artifacts
-make clean
-```
 
 ### Environment Variables
 
 - `LOG_LEVEL` - Controls logging verbosity (default: `info`)
   - Can be set to standard levels: `error`, `warn`, `info`, `debug`, `trace`
   - Supports per-crate configuration: `crate1=level1,crate2=level2`
-
-### Getting Help
-
-To see all available commands and usage information:
-
-```bash
-make help
-```
-
-This will display detailed usage instructions and examples for all available commands.
 
 
 ---

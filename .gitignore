@@ -85,7 +85,7 @@ out/
 # Documentation build
 docs/_build/
 
-.nx/
+.nx
 
 
 .nx/installation
