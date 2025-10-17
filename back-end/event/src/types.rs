@@ -17,10 +17,6 @@ pub enum EventError {
     InvalidPayload(String),
     #[error("database error: {0}")]
     Database(#[from] sled::Error),
-    #[error("binary encoding error: {0}")]
-    BinEncode(#[from] Box<bincode::error::EncodeError>),
-    #[error("binary decoding error: {0}")]
-    BinDecode(#[from] Box<bincode::error::DecodeError>),
     #[error("Log is empty, cannot determine previous state")]
     LogIsEmpty,
     #[error("TransactionError '{0}'")]

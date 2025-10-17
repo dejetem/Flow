@@ -14,6 +14,7 @@ use sled::Db;
 
 pub async fn run() -> Result<(), AppError> {
     let config = Config::from_env()?;
+    init_tracing();
 
     info!("Configuration loaded. Initializing node...");
 
@@ -55,6 +56,19 @@ pub async fn run() -> Result<(), AppError> {
     info!("Application running. Press Ctrl+C to exit.");
 
     Ok(())
+}
+
+fn init_tracing() {
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive(tracing::Level::INFO.into()),
+        )
+        .with_target(true)
+        .with_thread_ids(true)
+        .with_file(true)
+        .with_line_number(true)
+        .init();
 }
 
 async fn setup_database(config: &Config) -> Result<DatabaseConnection, AppError> {
