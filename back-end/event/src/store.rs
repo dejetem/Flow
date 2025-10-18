@@ -3,9 +3,9 @@ use crate::{
     validation::EventValidator,
 };
 use sha2::Digest;
-use sled::{Db, Tree};
+use sled::{Db, Transactional, Tree};
 use std::{path::Path, sync::Arc};
-use tracing::{Span, debug, error, info, instrument, warn};
+use tracing::{debug, error, info, instrument, warn, Span};
 
 const METADATA_TREE: &[u8] = b"metadata";
 const EVENTS_TREE: &[u8] = b"events";
@@ -13,6 +13,22 @@ const EVENTS_TREE: &[u8] = b"events";
 const HEAD_KEY: &[u8] = b"head_offset";
 const CAUSALITY_KEY: &[u8] = b"causality_dvv";
 const PREV_HASH_KEY: &[u8] = b"prev_hash";
+
+/// Pre-signed event payload with signature metadata.
+///
+/// The signature must be created by the caller over the canonical event bytes.
+/// The caller is responsible for:
+/// - Authenticating the user
+/// - Generating proper canonical bytes
+/// - Signing with the appropriate key
+/// - Encoding the signature (e.g., base64)
+#[derive(Debug, Clone)]
+pub struct SignedPayload<P: EventPayload> {
+    pub payload: P,
+    pub signer_did: String,
+    pub signature: String,
+    pub signature_type: String,
+}
 
 /// A durable, indexed, append-only event store powered by Sled.
 pub struct EventStore {
@@ -71,77 +87,295 @@ impl EventStore {
         &self.db
     }
 
-    /// Appends a new event to the store in a single atomic transaction.
+    // /// Appends a new event to the store in a single atomic transaction.
+    // ///
+    // ///
+    // /// This method:
+    // /// 1. Validates the payload against its schema (outside transaction)
+    // /// 2. Atomically reads current state, creates event, and persists it
+    // /// 3. Returns the created event with its assigned ID and metadata
+    // #[instrument(
+    //     skip(self, payload),
+    //     fields(
+    //         event_type = P::TYPE,
+    //         schema_version = P::VERSION,
+    //         signer_did,
+    //         event_id,
+    //         offset
+    //     )
+    // )]
+    // pub fn append<P: EventPayload>(
+    //     &self,
+    //     signer_did: &str,
+    //     payload: P,
+    // ) -> Result<Event, EventError> {
+    //     Span::current().record("signer_did", signer_did);
+
+    //     debug!("Serializing Event payload");
+    //     let payload_value = serde_json::to_value(&payload)?;
+    //     debug!("Validating Event payload");
+    //     self.validator
+    //         .validate(&payload_value, P::TYPE, P::VERSION)?;
+
+    //     let event_id = ulid::Ulid::new();
+    //     let timestamp = chrono::Utc::now();
+
+    //     Span::current().record("event_id", &event_id.to_string());
+    //     debug!(event_id = %event_id, "Generated event ID and timestamp");
+
+    //     // 2. Perform the append operation within a transaction
+    //     let result = self
+    //         .db
+    //         .transaction(|_tx_db| {
+    //             let metadata = self.db.open_tree(METADATA_TREE)?;
+    //             let events = self.db.open_tree(EVENTS_TREE)?;
+
+    //             // Get current log state from metadata
+    //             let head_offset = metadata
+    //                 .get(HEAD_KEY)?
+    //                 .map(|bytes| u64::from_be_bytes(bytes.as_ref().try_into().unwrap()))
+    //                 .unwrap_or(0);
+
+    //             let causality: DottedVersionVector = metadata
+    //                 .get(CAUSALITY_KEY)?
+    //                 .and_then(|bytes| serde_json::from_slice(&bytes).ok())
+    //                 .unwrap_or_default();
+
+    //             let prev_hash = metadata
+    //                 .get(PREV_HASH_KEY)?
+    //                 .map(|bytes| String::from_utf8(bytes.to_vec()).unwrap())
+    //                 .unwrap_or_else(|| "0".repeat(64));
+
+    //             // Prepare the new event
+    //             let new_offset = if head_offset == 0 && events.is_empty() {
+    //                 0
+    //             } else {
+    //                 head_offset + 1
+    //             };
+
+    //             // Increment causality
+    //             let mut new_causality = causality;
+    //             new_causality.increment(&signer_did);
+
+    //             // Create the event directly (validation already done)
+    //             let event = Event {
+    //                 id: event_id,
+    //                 ts: timestamp,
+    //                 stream_id: self.stream_id.clone(),
+    //                 space_id: self.space_id.clone(),
+    //                 event_type: P::TYPE.to_string(),
+    //                 schema_version: P::VERSION,
+    //                 payload: payload_value.clone(),
+    //                 causality: new_causality.clone(),
+    //                 prev_hash,
+    //                 signer: signer_did.to_string(),
+    //                 sig: "placeholder_signature".to_string(),
+    //                 trust_refs: vec![],
+    //                 redactable: false,
+    //             };
+
+    //             // Serialize the event for storage and hashing
+    //             let event_bytes = serde_json::to_vec(&event).map_err(|e| {
+    //                 sled::Error::Io(std::io::Error::new(
+    //                     std::io::ErrorKind::Other,
+    //                     e.to_string(),
+    //                 ))
+    //             })?;
+    //             let new_hash = format!("{:x}", sha2::Sha256::digest(&event_bytes));
+
+    //             // Stage all writes for the transaction
+    //             metadata.insert(HEAD_KEY, &new_offset.to_be_bytes())?;
+    //             metadata.insert(
+    //                 CAUSALITY_KEY,
+    //                 serde_json::to_vec(&new_causality)
+    //                     .map_err(|e| {
+    //                         sled::Error::Io(std::io::Error::new(
+    //                             std::io::ErrorKind::Other,
+    //                             e.to_string(),
+    //                         ))
+    //                     })?
+    //                     .as_slice(),
+    //             )?;
+    //             metadata.insert(PREV_HASH_KEY, new_hash.as_bytes())?;
+    //             events.insert(&new_offset.to_be_bytes(), event_bytes)?;
+
+    //             Span::current().record("offset", new_offset);
+
+    //             Ok((event, new_offset))
+    //         })
+    //         .map_err(|e: sled::transaction::TransactionError| {
+    //             error!(event_id = %event_id, error = ?e, "Transaction failed");
+    //             EventError::Database(sled::Error::Io(std::io::Error::new(
+    //                 std::io::ErrorKind::Other,
+    //                 format!("Transaction error: {:?}", e),
+    //             )))
+    //         })?;
+
+    //     // Ensure the data is written to disk before returning
+    //     self.db.flush()?;
+    //     info!(
+    //         event_id = %result.0.id, offset = result.1, event_type = %result.0.event_type,
+    //         "Event appended successfully"
+    //     );
+    //     Ok(result.0)
+    // }
+
+    /// Appends a pre-signed event to the store.
     ///
+    /// # Arguments
+    /// * `signer_did` - The DID of the signer (must match signature)
+    /// * `signed_payload` - The payload with its signature
     ///
-    /// This method:
-    /// 1. Validates the payload against its schema (outside transaction)
-    /// 2. Atomically reads current state, creates event, and persists it
-    /// 3. Returns the created event with its assigned ID and metadata
+    /// # Caller Responsibilities
+    /// The caller MUST:
+    /// 1. Authenticate the signer and verify they own the DID
+    /// 2. Create proper canonical event bytes
+    /// 3. Sign those bytes with the signer's private key
+    /// 4. Provide signature in the correct format (base64, hex, etc.)
+    /// 5. Specify the correct signature_type
+    ///
+    /// # Event Store Responsibilities
+    /// This method will:
+    /// 1. Validate payload against JSON schema
+    /// 2. Validate signature format (non-empty, type specified)
+    /// 3. Generate event ID (ULID) and timestamp
+    /// 4. Retrieve current state (prev_hash, causality, offset)
+    /// 5. Create event with provided signature
+    /// 6. Compute hash of canonical bytes (excluding signature)
+    /// 7. Update hash chain, causality, and offset atomically
+    /// 8. Persist event with full durability (flush)
+    ///
+    /// # Hash Chain vs Signature
+    /// - **Hash Chain**: Prevents reordering/deletion of events
+    /// - **Signature**: Proves who created the event
+    /// These are independent mechanisms serving different purposes.
+    ///
+    /// # No Signature Verification
+    /// This method does NOT verify signatures cryptographically because:
+    /// - Verification requires DID resolution (network calls)
+    /// - Different signature types need different verification logic
+    /// - Verification is expensive (O(n) on reads)
+    ///
+    /// Signature verification should happen at:
+    /// - API boundaries (before presenting to clients)
+    /// - Downstream handlers (if they need trust guarantees)
+    /// - Replication endpoints (when receiving from peers)
+    ///
+    /// # Example
+    /// ```ignore
+    /// // After authentication in API layer
+    /// let auth_ctx = authenticate_user().await?;
+    /// let signature = auth_ctx.sign(&payload_bytes)?;
+    ///
+    /// let signed_payload = SignedPayload {
+    ///     payload: MyPayload { field: "value" },
+    ///     signature: base64::encode(&signature),
+    ///     signature_type: "Ed25519",
+    /// };
+    ///
+    /// let event = store.append(signed_payload)?;
+    /// ```
     #[instrument(
-        skip(self, payload),
+        skip(self, signed_payload),
         fields(
             event_type = P::TYPE,
             schema_version = P::VERSION,
             signer_did,
+            sig_type = %signed_payload.signature_type,
             event_id,
             offset
         )
     )]
     pub fn append<P: EventPayload>(
         &self,
-        signer_did: &str,
-        payload: P,
+        signed_payload: SignedPayload<P>,
     ) -> Result<Event, EventError> {
+        let signer_did = signed_payload.signer_did.as_str();
         Span::current().record("signer_did", signer_did);
 
-        debug!("Serializing Event payload");
-        let payload_value = serde_json::to_value(&payload)?;
-        debug!("Validating Event payload");
+        // 1. Validate payload against schema
+        debug!("Serializing event payload");
+        let payload_value = serde_json::to_value(&signed_payload.payload)?;
+
+        debug!("Validating event payload against schema");
         self.validator
             .validate(&payload_value, P::TYPE, P::VERSION)?;
 
+        // 2. Validate signature format (NOT cryptographic verification)
+        if signed_payload.signature.is_empty() {
+            warn!(
+                signer_did = signer_did,
+                "Attempted to append event with empty signature"
+            );
+            return Err(EventError::InvalidPayload);
+        }
+        if signed_payload.signature_type.is_empty() {
+            warn!(
+                signer_did = signer_did,
+                "Attempted to append event with empty signature type"
+            );
+            return Err(EventError::InvalidPayload);
+        }
+
+        // 3. Generate event ID and timestamp
         let event_id = ulid::Ulid::new();
         let timestamp = chrono::Utc::now();
 
         Span::current().record("event_id", &event_id.to_string());
-        debug!(event_id = %event_id, "Generated event ID and timestamp");
+        debug!(
+            event_id = %event_id,
+            timestamp = %timestamp,
+            "Generated event ID and timestamp"
+        );
 
-        // 2. Perform the append operation within a transaction
-        let result = self
-            .db
-            .transaction(|_tx_db| {
-                let metadata = self.db.open_tree(METADATA_TREE)?;
-                let events = self.db.open_tree(EVENTS_TREE)?;
-
-                // Get current log state from metadata
-                let head_offset = metadata
+        // 4. Perform atomic append within transaction
+        let result = (&self.metadata, &self.events)
+            .transaction(|(metadata, events)| {
+                // Get current head offset
+                let head_opt = metadata
                     .get(HEAD_KEY)?
-                    .map(|bytes| u64::from_be_bytes(bytes.as_ref().try_into().unwrap()))
-                    .unwrap_or(0);
+                    .map(|bytes| {
+                        let arr: [u8; 8] = bytes.as_ref().try_into().map_err(|_| {
+                            sled::Error::Io(std::io::Error::new(
+                                std::io::ErrorKind::InvalidData,
+                                "Invalid offset bytes",
+                            ))
+                        })?;
+                        Ok::<u64, sled::Error>(u64::from_be_bytes(arr))
+                    })
+                    .transpose()?;
 
+                // Get current causality vector
                 let causality: DottedVersionVector = metadata
                     .get(CAUSALITY_KEY)?
                     .and_then(|bytes| serde_json::from_slice(&bytes).ok())
                     .unwrap_or_default();
 
+                // Get previous hash
                 let prev_hash = metadata
                     .get(PREV_HASH_KEY)?
-                    .map(|bytes| String::from_utf8(bytes.to_vec()).unwrap())
-                    .unwrap_or_else(|| "0".repeat(64));
+                    .map(|bytes| {
+                        String::from_utf8(bytes.to_vec()).map_err(|_| {
+                            sled::Error::Io(std::io::Error::new(
+                                std::io::ErrorKind::InvalidData,
+                                "Invalid hash UTF-8",
+                            ))
+                        })
+                    })
+                    .transpose()?
+                    .unwrap_or_else(|| "0".repeat(64)); // Genesis event
 
-                // Prepare the new event
-                let new_offset = if head_offset == 0 && events.is_empty() {
-                    0
-                } else {
-                    head_offset + 1
+                // Calculate new offset
+                let new_offset = match head_opt {
+                    None => 0,
+                    Some(h) => h + 1,
                 };
 
-                // Increment causality
+                // Increment causality for this actor
                 let mut new_causality = causality;
-                new_causality.increment(&signer_did);
+                new_causality.increment(signer_did);
 
-                // Create the event directly (validation already done)
+                // Create event with provided signature
                 let event = Event {
                     id: event_id,
                     ts: timestamp,
@@ -153,21 +387,37 @@ impl EventStore {
                     causality: new_causality.clone(),
                     prev_hash,
                     signer: signer_did.to_string(),
-                    sig: "placeholder_signature".to_string(),
+                    sig: signed_payload.signature.clone(),
+                    sig_type: signed_payload.signature_type.clone(),
                     trust_refs: vec![],
                     redactable: false,
                 };
 
-                // Serialize the event for storage and hashing
+                // Compute hash of canonical event (EXCLUDES signature)
+                // This is critical: hash is computed BEFORE signature is part of the event
+                let canonical_bytes = event.canonical_bytes().map_err(|e| {
+                    sled::Error::Io(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("Failed to create canonical bytes: {}", e),
+                    ))
+                })?;
+                let new_hash = format!("{:x}", sha2::Sha256::digest(&canonical_bytes));
+
+                debug!(
+                    new_hash = %new_hash,
+                    prev_hash = %event.prev_hash,
+                    "Computed event hash for chain"
+                );
+
+                // Serialize complete event for storage (includes signature)
                 let event_bytes = serde_json::to_vec(&event).map_err(|e| {
                     sled::Error::Io(std::io::Error::new(
                         std::io::ErrorKind::Other,
-                        e.to_string(),
+                        format!("Failed to serialize event: {}", e),
                     ))
                 })?;
-                let new_hash = format!("{:x}", sha2::Sha256::digest(&event_bytes));
 
-                // Stage all writes for the transaction
+                // Atomic write: update all metadata and persist event
                 metadata.insert(HEAD_KEY, &new_offset.to_be_bytes())?;
                 metadata.insert(
                     CAUSALITY_KEY,
@@ -175,7 +425,7 @@ impl EventStore {
                         .map_err(|e| {
                             sled::Error::Io(std::io::Error::new(
                                 std::io::ErrorKind::Other,
-                                e.to_string(),
+                                format!("Failed to serialize causality: {}", e),
                             ))
                         })?
                         .as_slice(),
@@ -188,19 +438,25 @@ impl EventStore {
                 Ok((event, new_offset))
             })
             .map_err(|e: sled::transaction::TransactionError| {
-                error!(event_id = %event_id, error = ?e, "Transaction failed");
-                EventError::Database(sled::Error::Io(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Transaction error: {:?}", e),
-                )))
+                error!(
+                    event_id = %event_id, error = ?e,
+                    "Transaction failed during event append"
+                );
+                EventError::TransactionError(format!("{:?}", e))
             })?;
 
-        // Ensure the data is written to disk before returning
+        // Ensure durability by flushing to disk
         self.db.flush()?;
+
         info!(
-            event_id = %result.0.id, offset = result.1, event_type = %result.0.event_type,
+            event_id = %result.0.id,
+            offset = result.1,
+            event_type = %result.0.event_type,
+            signer = %result.0.signer,
+            sig_type = %result.0.sig_type,
             "Event appended successfully"
         );
+
         Ok(result.0)
     }
 
@@ -289,7 +545,7 @@ impl EventStore {
         debug!(start_offset = start_offset, "Creating event iterator");
         EventIterator {
             tree: self.events.clone(),
-            current_offset: start_offset.saturating_sub(1),
+            current_offset: start_offset,
         }
     }
 
@@ -303,7 +559,7 @@ impl EventStore {
         );
         EventRangeIterator {
             tree: self.events.clone(),
-            current_offset: start_offset.saturating_sub(1),
+            current_offset: start_offset,
             end_offset,
         }
     }
@@ -319,18 +575,19 @@ impl Iterator for EventIterator {
     type Item = Result<(u64, Event), EventError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.tree.get_gt(&self.current_offset.to_be_bytes()) {
-            Ok(Some((offset_bytes, event_bytes))) => {
+        let start = self.current_offset.to_be_bytes();
+        match self.tree.range(start..).next() {
+            Some(Ok((offset_bytes, event_bytes))) => {
                 let offset = u64::from_be_bytes(offset_bytes.as_ref().try_into().unwrap());
-                self.current_offset = offset;
+                self.current_offset = offset.saturating_add(1);
 
                 let event_result =
                     serde_json::from_slice::<Event>(&event_bytes).map_err(EventError::Json);
 
                 Some(event_result.map(|event| (offset, event)))
             }
-            Ok(None) => None,              // End of iteration
-            Err(e) => Some(Err(e.into())), // Database error
+            Some(Err(e)) => Some(Err(EventError::Database(e))),
+            None => None,
         }
     }
 }
@@ -350,25 +607,25 @@ impl Iterator for EventRangeIterator {
             return None;
         }
 
-        match self.tree.get_gt(&self.current_offset.to_be_bytes()) {
-            Ok(Some((offset_bytes, event_bytes))) => {
+        let start = self.current_offset.to_be_bytes();
+
+        match self.tree.range(start..).next() {
+            Some(Ok((offset_bytes, event_bytes))) => {
                 let offset = u64::from_be_bytes(offset_bytes.as_ref().try_into().unwrap());
 
-                // Check if we've exceeded the end offset
                 if offset >= self.end_offset {
                     return None;
                 }
 
-                self.current_offset = offset;
+                self.current_offset = offset.saturating_add(1);
 
-                // Use serde_json for consistency
                 let event_result =
                     serde_json::from_slice::<Event>(&event_bytes).map_err(EventError::Json);
 
                 Some(event_result.map(|event| (offset, event)))
             }
-            Ok(None) => None,
-            Err(e) => Some(Err(e.into())),
+            Some(Err(e)) => Some(Err(EventError::Database(e))),
+            None => None,
         }
     }
 }

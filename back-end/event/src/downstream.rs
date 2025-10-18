@@ -3,10 +3,10 @@ use crate::{
     types::{Event, EventError},
 };
 use sled::{
-    Db, Tree,
     transaction::{ConflictableTransactionError, TransactionError},
+    Db, Tree,
 };
-use tracing::{Span, debug, error, info, instrument, warn};
+use tracing::{debug, error, info, instrument, warn, Span};
 
 const DEFAULT_BATCH_SIZE: usize = 100;
 const BOOKMARK_KEY: &[u8] = b"bookmark";
@@ -132,16 +132,11 @@ impl<H: EventHandler> PersistentSubscription<H> {
                 event_id = %event.id,
                 "Attempting to claim event"
             );
-            let claimed = self
-                .db
-                .transaction(|_tx_db| {
-                    let tx_state = self.db.open_tree(self.state_tree.name())?;
-
-                    // insert() returns the previous value
-                    // None = we claimed it, Some(_) = already processed
-                    match tx_state.insert(&id_key, &[])? {
+            let claimed = (&self.state_tree)
+                .transaction(move |state| {
+                    match state.insert(&*id_key, &[])? {
                         None => Ok(true),     // We successfully claimed this event
-                        Some(_) => Ok(false), // Already processed by another worker
+                        Some(_) => Ok(false), // Event is Already processed
                     }
                 })
                 .map_err(|e: TransactionError<ConflictableTransactionError>| {
@@ -187,39 +182,11 @@ impl<H: EventHandler> PersistentSubscription<H> {
             // After successful handling, update bookmark and prune if needed
             let should_prune = *offset % PRUNE_INTERVAL == 0;
 
-            self.db
-                .transaction(|_tx_db| {
-                    let tx_state = self.db.open_tree(self.state_tree.name())?;
-
+            // Update bookmark transaction
+            (&self.state_tree)
+                .transaction(|state| {
                     // Advance bookmark to this offset (monotonic)
-                    tx_state.insert(BOOKMARK_KEY, &offset.to_be_bytes())?;
-
-                    // Amortized pruning: only check every PRUNE_INTERVAL events
-                    if should_prune {
-                        let total_seen =
-                            tx_state.scan_prefix(IDEMPOTENCY_KEY_PREFIX).keys().count() as u64;
-
-                        if total_seen > self.idempotency_window_size {
-                            let to_remove = total_seen - self.idempotency_window_size;
-
-                            debug!(
-                                offset = offset,
-                                total_seen = total_seen,
-                                to_remove = to_remove,
-                                "Pruning idempotency set"
-                            );
-
-                            // Remove oldest keys (lexicographically first due to offset prefix)
-                            for key_res in tx_state
-                                .scan_prefix(IDEMPOTENCY_KEY_PREFIX)
-                                .keys()
-                                .take(to_remove as usize)
-                            {
-                                tx_state.remove(key_res?)?;
-                            }
-                        }
-                    }
-
+                    state.insert(BOOKMARK_KEY, &offset.to_be_bytes())?;
                     Ok(())
                 })
                 .map_err(|e: TransactionError<ConflictableTransactionError>| {
@@ -232,6 +199,35 @@ impl<H: EventHandler> PersistentSubscription<H> {
                         format!("Bookmark transaction error: {:?}", e),
                     )))
                 })?;
+
+            if should_prune {
+                let total_seen = self
+                    .state_tree
+                    .scan_prefix(IDEMPOTENCY_KEY_PREFIX)
+                    .keys()
+                    .count() as u64;
+
+                if total_seen > self.idempotency_window_size {
+                    let to_remove = total_seen - self.idempotency_window_size;
+
+                    debug!(
+                        offset = offset,
+                        total_seen = total_seen,
+                        to_remove = to_remove,
+                        "Pruning idempotency set"
+                    );
+
+                    // Remove oldest keys (lexicographically first due to offset prefix)
+                    for key_res in self
+                        .state_tree
+                        .scan_prefix(IDEMPOTENCY_KEY_PREFIX)
+                        .keys()
+                        .take(to_remove as usize)
+                    {
+                        self.state_tree.remove(key_res?)?;
+                    }
+                }
+            }
         }
 
         self.db.flush()?;
