@@ -8,7 +8,7 @@
 *   **Semantic DAG Coordination:** Manage the distributed state of DAG execution.
 *   **Multi-Agent Orchestration:** Facilitate complex interactions between agents based on shared state.
 *   **Offline Resilience:** Support operation during network disconnection and seamless re-sync.
-*   **Privacy-Respecting:** Allow selective synchronization based on permissions (UCANs).
+*   **Privacy-Respecting:** Allow selective synchronization based on permissions (VCs).
 *   **Decentralized:** Avoid reliance on central servers for state coordination.
 *   **Extensible:** Allow different sync strategies and protocols.
 *   **Verifiable Sync:** Ensure synchronized state is authentic and authorized.
@@ -30,13 +30,13 @@
 *   Manages the distributed state transitions of tasks within the Execution Layer's DAGs.
 *   Uses a distributed state machine model, where states might include: `Proposed`, `Offered`, `Accepted`, `InProgress`, `Completed`, `Failed`, `Rejected`.
 *   **State Transitions as CRDT Deltas:** Each transition is recorded as a delta applied to the task's state object (which is itself a CRDT).
-*   **Conflict Handling:** Strategies for resolving conflicting transitions (e.g., based on UCAN scope, timestamps, policy rules, or potentially requiring agent intervention).
+*   **Conflict Handling:** Strategies for resolving conflicting transitions (e.g., based on VC scope, timestamps, policy rules, or potentially requiring agent intervention).
 
 ## Workspace & Context Synchronization
 
 *   Manages shared environments like collaborative documents, knowledge graph partitions, or shared agent context.
 *   Uses CRDT DAGs to represent the history and current state of these workspaces.
-*   **Selective/Scoped Sync:** Leverages UCANs to control which parts of a workspace are synced with which peers, ensuring privacy and relevance.
+*   **Selective/Scoped Sync:** Leverages VCs to control which parts of a workspace are synced with which peers, ensuring privacy and relevance.
 *   Enables real-time collaboration between users and agents.
 *   Supports reactive agent behavior based on changes in shared context.
 
@@ -49,10 +49,10 @@
 
 ## Agent Coordination Patterns
 
-*   Defines standard patterns for multi-agent interaction built upon shared DAG state and UCANs:
+*   Defines standard patterns for multi-agent interaction built upon shared DAG state and VCs:
     *   **Task Handoff:** Transferring responsibility for a task between agents.
     *   **Constraint Resolution:** Collaborative problem-solving based on shared constraints.
-    *   **Delegation:** Agents issuing UCANs to authorize other agents.
+    *   **Delegation:** Agents issuing VCs to authorize other agents.
     *   **Timed Orchestration:** Coordinating actions based on time or event triggers in the shared state.
     *   **Fork-Merge:** Agents working on parallel branches of a task/state and merging results.
 *   Roles (Planner, Executor, Monitor) interact via changes to shared CRDT/DAG state.
@@ -65,7 +65,7 @@
     *   Peers exchange DAG frontiers/version vectors.
     *   Relevant missing deltas are exchanged (via Network Layer).
     *   Deltas are replayed and CRDT states are merged deterministically.
-*   Preserves data integrity and UCAN capabilities during offline periods.
+*   Preserves data integrity and VC capabilities during offline periods.
 
 ## Extensibility
 
@@ -82,4 +82,4 @@
 *   **Network Layer:** Uses the Network Layer for discovering peers and transporting sync messages/deltas.
 *   **Execution Layer:** Synchronizes the state of DAGs and tasks.
 *   **KG Layer:** The objects being synchronized are often nodes/subgraphs within the Knowledge Graph.
-*   **Access & Auth Layer:** UCANs gate all sync operations and define data visibility.
+*   **Access & Auth Layer:** VCs gate all sync operations and define data visibility.

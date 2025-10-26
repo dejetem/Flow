@@ -25,7 +25,7 @@ Provides the semantic memory and context foundation for the Flow system, and def
     *   Causal Layer (Execution Traces)
     *   Provenance Layer (Origin, Signatures, Proofs)
 *   **Schemas:** Supports JSON-LD, RDFS/OWL-lite for defining object types and relationships.
-*   **Access Control:** UCAN-based permissions govern read/write access to graph partitions.
+*   **Access Control:** VC-based permissions govern read/write access to graph partitions.
 
 ## Contextualization & Binding
 
@@ -36,6 +36,6 @@ Provides the semantic memory and context foundation for the Flow system, and def
 *   Supports scoping context by:
     *   Time
     *   Logical relevance
-    *   Privacy constraints (UCANs)
+    *   Privacy constraints (VCs)
 *   Enables runtime resolution of context needed by tasks/models.
 *   Tracks provenance of context used.

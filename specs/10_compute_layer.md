@@ -48,7 +48,7 @@ Dynamically selected based on policy (trust, resources, privacy, cost, location)
     *   Private Clusters
     *   Decentralized Marketplaces (e.g., Bacalhau)
 *   Providers declare capabilities (resources like CPU/GPU/RAM, privacy features like TEE/zkVM support, pricing models, reputation scores) via signed profiles.
-*   UCANs gate delegation of tasks to specific providers.
+*   VCs gate delegation of tasks to specific providers.
 *   Integrates payment/incentive models (tokens, credits, reputation boosts) via Incentive Layer.
 
 ## Task Definition & Packaging
@@ -61,7 +61,7 @@ Dynamically selected based on policy (trust, resources, privacy, cost, location)
         *   Outputs (expected format, storage location).
         *   Runtime requirements (WASM module, OCI image, specific hardware).
         *   Constraints (privacy level, region locks, proof requirements, cost budget, deadlines).
-        *   UCAN authorizing the execution.
+        *   VC authorizing the execution.
 *   Supports packaging formats:
     *   Raw DAG structures
     *   CAR files (for bundled dependencies)
@@ -99,7 +99,7 @@ Integrates techniques based on task requirements and policy:
 *   **Trusted Execution Environments (TEEs):** Hardware protection for computation.
 *   **Secure Multi-Party Computation (MPC):** Distribute computation across multiple parties without revealing inputs.
 *   **Differential Privacy:** Add noise to outputs to protect individual input privacy.
-*   Governed by task policies, UCAN-based consent, and linked to compliance tags in the KG.
+*   Governed by task policies, VC-based consent, and linked to compliance tags in the KG.
 
 ## Proof of Execution & Verifiability
 
@@ -120,7 +120,7 @@ Integrates techniques based on task requirements and policy:
 *   Tracks resource consumption (CPU time, memory usage, I/O, GPU usage, network bandwidth, proof generation overhead).
 *   Providers generate signed metering logs.
 *   Task manifests can specify cost models (budget limits, preferred rates, settlement mechanisms).
-*   Integrates with payment channels (wallets, token contracts, UCAN-based credits) via the Incentive Layer.
+*   Integrates with payment channels (wallets, token contracts, VC-based credits) via the Incentive Layer.
 *   Supports verifiable metering through audits, ZK proofs, or consensus mechanisms.
 *   Helps prevent abuse via budget caps and reputation penalties.
 *   Informs scheduling decisions.

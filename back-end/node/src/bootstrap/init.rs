@@ -13,6 +13,7 @@ use std::os::unix::fs::PermissionsExt;
 use ed25519_dalek::SigningKey;
 use multibase::Base;
 
+#[derive(Clone)]
 pub struct NodeData {
     pub id: String,
     pub private_key: Vec<u8>,
@@ -61,7 +62,16 @@ pub fn initialize_config_dir(dir: &str) -> Result<NodeData, AppError> {
     let _created = create_directory(&p.config_dir)
         .map_err(|e| AppError::Bootstrap(format!("Failed to create directory. {}", e)))?;
 
+    let lock_file = p.config_dir.join(".init.lock");
+    let file = fs::OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(&lock_file)?;
+
+    fs4::fs_std::FileExt::lock_exclusive(&file)?; // Block until we get the lock
+
     if p.auth_file.exists() {
+        fs4::fs_std::FileExt::unlock(&file)?;
         return load_existing(&p).map_err(|e| {
             AppError::Bootstrap(format!(
                 "Error while loading existing configurations. {}",
@@ -70,7 +80,9 @@ pub fn initialize_config_dir(dir: &str) -> Result<NodeData, AppError> {
         });
     }
 
-    bootstrap_new(&p)
+    let result = bootstrap_new(&p);
+    fs4::fs_std::FileExt::unlock(&file)?;
+    result
 }
 
 fn paths(dir: &str) -> Paths {

@@ -4,7 +4,7 @@
 
 Provides the primary human interface to the complex capabilities of the Flow ecosystem. Aims to:
 
-*   Make decentralized operations (DAGs, UCANs, KG, Agents) **accessible and understandable**.
+*   Make decentralized operations (DAGs, VCs, KG, Agents) **accessible and understandable**.
 *   Ensure **transparency** into system state, agent behavior, and provenance.
 *   Provide users with **control** over their agents, data, and capabilities.
 *   Build **trust** through verifiable information and clear actions.
@@ -39,7 +39,7 @@ Potential components within the UI:
     *   Simulating the effects of policies before deployment.
 *   **Identity & Wallet Manager:**
     *   Managing user DIDs and associated keys.
-    *   Issuing, viewing, and revoking UCANs.
+    *   Issuing, viewing, and revoking VCs.
     *   Handling consent prompts for delegation and data access.
     *   Interfacing with token balances (Incentive Layer).
 *   **Notification Center:** Real-time updates on task completion, agent status changes, incoming proposals, rewards earned, security alerts.
@@ -50,7 +50,7 @@ Potential components within the UI:
 
 ## Design Principles
 
-*   **Explainability-First:** Always strive to show the 'why' behind system actions (provenance, reasoning traces, UCAN chains).
+*   **Explainability-First:** Always strive to show the 'why' behind system actions (provenance, reasoning traces, VC chains).
 *   **User Control & Consent:** Actions should be explicit, and delegation/permissions clearly presented and manageable.
 *   **Context-Awareness:** Display information relevant to the user's current task or focus.
 *   **Progressive Disclosure:** Hide underlying complexity by default, allowing users to drill down for details when needed.
@@ -65,7 +65,7 @@ Potential components within the UI:
     *   Execution Layer (DAG management, status)
     *   KG/MCP Layer (graph browsing, context query, MCP details)
     *   Storage Layer (data access, sync status)
-    *   Access/Auth Layer (DID/UCAN management, consent)
+    *   Access/Auth Layer (DID/VC management, consent)
     *   Network Layer (peer status, connection info)
     *   Coordination Layer (shared state visualization)
     *   Incentive Layer (balances, reputation, bounties)
@@ -81,6 +81,6 @@ Potential components within the UI:
 
 *   **Consumes:** APIs/SDKs from backend layers.
 *   **Provides (Potentially):**
-    *   A library of reusable UI components embodying Flow concepts (Graph nodes, DAG steps, UCAN viewers).
+    *   A library of reusable UI components embodying Flow concepts (Graph nodes, DAG steps, VC viewers).
     *   Design system guidelines.
     *   A BFF service API if implemented.

@@ -11,7 +11,7 @@
 *   **Privacy-Preserving:** Minimize metadata leakage.
 *   **Sync Integration:** Support efficient CRDT synchronization.
 *   **Extensible Overlays:** Allow higher-level protocols and topologies.
-*   **Verifiable Communication:** Bind messages to UCANs and provenance.
+*   **Verifiable Communication:** Bind messages to VCs and provenance.
 
 ## Topology & Peer Roles
 
@@ -43,7 +43,7 @@
     *   Gossip Protocols (for broadcast/multicast information)
     *   Content-Addressed Routing (finding peers holding specific CIDs, e.g., via DHT provider records)
 *   **Metadata:** Discovery records are signed, potentially including capabilities or roles.
-*   **Decision Logic:** Routing and peer selection can be influenced by trust scores, latency, UCANs, and policy.
+*   **Decision Logic:** Routing and peer selection can be influenced by trust scores, latency, VCs, and policy.
 
 ## Transport Layer
 
@@ -55,7 +55,7 @@
     *   Bluetooth / Local transports (optional)
 *   **Authentication:** Transport connections are authenticated using peer DIDs (via Access & Auth Layer).
 *   **Encryption:** End-to-end encryption is standard for connections (e.g., Noise protocol framework, TLS 1.3).
-*   **UCAN Binding:** Transport sessions can be bound to specific UCAN capabilities, limiting the scope of communication.
+*   **VC Binding:** Transport sessions can be bound to specific VC capabilities, limiting the scope of communication.
 *   **Signed Envelopes:** Messages are wrapped in signed envelopes authenticating the sender.
 
 ## Messaging & Framing
@@ -63,28 +63,28 @@
 *   **Standard Envelope:** Defines a common structure for all messages:
     *   Sender DID
     *   Recipient DID (or topic for pub/sub)
-    *   Message Type (e.g., `task-request`, `crdt-delta`, `ucan-invocation`, `presence-update`, `kg-query`)
+    *   Message Type (e.g., `task-request`, `crdt-delta`, `vc-invocation`, `presence-update`, `kg-query`)
     *   Payload (actual message content, typically DAG-CBOR encoded)
-    *   UCAN (embedded or referenced, authorizing the message/action)
+    *   VC (embedded or referenced, authorizing the message/action)
     *   Signature (over the envelope contents)
 *   **Framing:** Specifies how messages are delimited on the wire (e.g., length-prefixing).
 *   **Serialization:** DAG-CBOR is the likely default for payloads due to IPLD integration.
-*   **UCAN Validation:** Receiving peers validate the embedded/referenced UCAN against the message type, sender, and intended action before processing.
+*   **VC Validation:** Receiving peers validate the embedded/referenced VC against the message type, sender, and intended action before processing.
 
 ## Secure Channels
 
 *   Established using DID-based mutual authentication (e.g., via Noise Handshake Pattern, TLS with client/server certs derived from DIDs).
 *   **Session Keys:** Derived using cryptographic key agreement (e.g., ECDH) for symmetric encryption during the session.
 *   **Forward Secrecy:** Ensures past sessions remain secure even if long-term keys are compromised.
-*   **Scoped Sessions:** Channels can be established for specific purposes or bound by UCANs.
+*   **Scoped Sessions:** Channels can be established for specific purposes or bound by VCs.
 *   **Auditable:** Session establishment and key exchanges can be logged for auditing.
 
-## UCAN Transport Integration
+## VC Transport Integration
 
-*   **Embedding:** UCANs can be directly included in message envelopes.
-*   **Referencing:** Messages can reference UCANs stored elsewhere (e.g., in KG, identified by CID).
-*   **Session Scoping:** A UCAN can authorize an entire communication session, avoiding per-message UCAN transmission.
-*   **Binding:** Cryptographically binding messages to UCANs ensures the authorization applies specifically to that message/action.
+*   **Embedding:** VCs can be directly included in message envelopes.
+*   **Referencing:** Messages can reference VCs stored elsewhere (e.g., in KG, identified by CID).
+*   **Session Scoping:** A VC can authorize an entire communication session, avoiding per-message VC transmission.
+*   **Binding:** Cryptographically binding messages to VCs ensures the authorization applies specifically to that message/action.
 *   **Stateless Authorization:** Enables peers to authorize requests without complex session state management.
 
 ## Reliability & Ordering

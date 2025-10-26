@@ -61,7 +61,7 @@ Core components may include:
     *   Model Inference/Training (accuracy, resource use)
     *   Data Provision (quality, uniqueness, consent)
     *   Validation/Review Actions
-    *   Delegation of Capabilities (UCANs)
+    *   Delegation of Capabilities (VCs)
     *   Sync/Relay Services
     *   Governance Participation
     *   Tooling & Infrastructure Development
@@ -80,7 +80,7 @@ Core components may include:
 *   Leverages Flow's core provenance capabilities:
     *   Signed, content-addressed DAG nodes (tasks, data, messages).
     *   Signed CRDT deltas.
-    *   UCAN chains for delegation and action authorization.
+    *   VC chains for delegation and action authorization.
     *   Task receipts and execution proofs (ZK, TEE).
     *   Peer witnessing or attestations.
 *   Enables fine-grained tracking of who contributed what, when, and under what authority.
@@ -98,7 +98,7 @@ Supports a variety of programmable reward distribution models:
 *   **Staked/Delegated Rewards:** Earning yield for securing services or delegating stake.
 *   **Retroactive Funding / DAO-Governed:** Community-based allocation (e.g., quadratic funding, grants).
 *   **Reputation-Gated Rewards:** Access to rewards requires minimum reputation score.
-*   Distribution relies on provenance data, UCANs, receipts, and configurable policy modules.
+*   Distribution relies on provenance data, VCs, receipts, and configurable policy modules.
 
 ## Incentive Instruments
 
@@ -121,7 +121,7 @@ Deeply integrated with other layers:
 *   **KG/Provenance:** Source of truth for contribution tracking.
 *   **Execution Layer:** Triggers reward events based on task completion/verification.
 *   **Compute/Storage Layers:** Facilitates payments for resource usage.
-*   **Access & Auth Layer:** Links rewards/reputation to DIDs, uses UCANs for disbursement authorization.
+*   **Access & Auth Layer:** Links rewards/reputation to DIDs, uses VCs for disbursement authorization.
 *   **Coordination Layer:** Synchronizes reward-related state (balances, reputation scores).
 *   **UI/UX Layer:** Visualizes reputation, balances, bounties, contribution history.
 

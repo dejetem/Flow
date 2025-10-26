@@ -39,7 +39,7 @@ Node Roles:
 *   Verification Proofs (ZK proofs, TEE attestations)
 *   State Snapshots
 *   User Documents / Files
-*   UCANs (capabilities)
+*   Capability Based Access Control (capabilities)
 
 Data Representation:
 
@@ -58,7 +58,7 @@ Data Representation:
 *   **Delta-based Sync:** Only changes (signed deltas) are typically synced.
 *   **Causal Consistency:** Sync respects the causal history of changes.
 *   **Mergeable State:** CRDTs ensure deterministic merging of concurrent changes.
-*   **Scoped Sync:** UCANs control which parts of the state graph can be synced with which peers.
+*   **Scoped Sync:** Using Capability Based Access Control controls which parts of the state graph can be synced with which peers.
 
 ## Security & Encryption
 
@@ -66,11 +66,11 @@ Data Representation:
 *   **Field-Level Encryption:** Sensitive data within objects can be selectively encrypted.
 *   Uses standard cryptographic primitives (e.g., Sealed Box, Envelope Encryption).
 *   **Signatures:** All objects, deltas, and operations are typically signed by the originating DID.
-*   **Access Control:** UCANs gate all storage operations (see Access & Auth Layer).
+*   **Access Control:** Capability gate all storage operations (see Access & Auth Layer).
 
 ## Access Control
 
-*   Relies heavily on the **UCAN** framework (see Access & Auth Layer).
+*   Relies heavily on the **Capability based access Control** framework (see Access & Auth Layer).
 *   Defines fine-grained capabilities:
     *   `read`, `write`, `delete`
     *   `sync` (permission to exchange deltas for an object/scope)
@@ -79,7 +79,7 @@ Data Representation:
     *   `execute` (related to compute, but may involve storage access)
     *   `redact`
     *   `pin` (requesting persistent storage)
-*   Enforcement occurs at the storage API level, checking UCAN validity and scope.
+*   Enforcement occurs at the storage API level, checking VC validity and scope.
 
 ## APIs & Interfaces
 
@@ -94,14 +94,14 @@ Supports operations like:
 *   Get/Put/Delete objects (based on CID/Key)
 *   Querying/Filtering (leveraging KG layer capabilities)
 *   Initiating Sync with peers
-*   Sharing data (issuing UCANs)
+*   Sharing data
 *   Managing encryption keys
 *   Triggering pinning/archival
 
 ## Retention & Garbage Collection (GC)
 
 *   **Policy-Driven:** Rules define data lifecycle (TTL, expiry, compliance needs like GDPR).
-*   Policies can be stored in the KG or attached via UCANs.
+*   Policies can be stored in the KG or attached via capability tokens.
 *   **GC Modes:**
     *   Soft Delete (mark as deleted, retain for recovery)
     *   Hard Delete (permanently remove)

@@ -86,8 +86,8 @@ Mechanisms include:
 
 ## Security
 
-*   DAG operations (creation, execution, modification, inspection) are gated by **UCANs**.
-*   Task dispatch ensures secure context and parameter passing according to UCAN capabilities.
+*   DAG operations (creation, execution, modification, inspection) are gated by **VCs**.
+*   Task dispatch ensures secure context and parameter passing according to VC capabilities.
 *   Provenance graph maintained in the KG serves security audit purposes.
 
 ## APIs & SDKs

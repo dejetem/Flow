@@ -18,7 +18,7 @@ Hosts autonomous agents, providing the primary interface for users/developers. F
     *   Execution Layer (running DAGs)
     *   Network Layer (Agent-to-Agent communication)
     *   Storage Layer (CRDT-backed agent state)
-    *   Access & Auth Layer (Agent DIDs, UCAN enforcement)
+    *   Access & Auth Layer (Agent DIDs, VC enforcement)
 
 ## SLRPA Lifecycle
 
@@ -50,13 +50,13 @@ Defines specialized agents that collaborate within the ecosystem, potentially in
 
 *   Uses secure, DID-authenticated protocols (built on the Network Layer).
 *   Supports discovery, negotiation, task delegation, and knowledge sharing between agents.
-*   UCANs strictly gate all interactions.
+*   VCs strictly gate all interactions.
 
 ## Security & Identity
 
 *   Each agent possesses a Decentralized Identifier (DID).
 *   Manages cryptographic keys securely.
-*   Operates based on granted UCAN capabilities.
+*   Operates based on granted VC capabilities.
 *   Secure state storage and communication channels are enforced.
 
 ## APIs & SDKs

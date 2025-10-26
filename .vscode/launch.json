@@ -1,0 +1,47 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug Rust Backend",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=node",
+                    "--package=node",
+                    "--manifest-path=${workspaceFolder}/back-end/Cargo.toml"
+                ]
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}/back-end",
+            "envFile": "${workspaceFolder}/back-end/.env",
+            "env": {
+                "RUST_BACKTRACE": "full",
+                "RUST_LOG": "debug"
+            },
+            "console": "integratedTerminal",
+            "sourceLanguages": ["rust"]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Start Flow-Web",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["nx", "dev", "flow-web"],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "timeout": 30000
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Debug Full Stack",
+            "configurations": [
+                "Debug Rust Backend", 
+                "Start Flow-Web"
+            ],
+            "stopAll": true
+        }
+    ]
+}

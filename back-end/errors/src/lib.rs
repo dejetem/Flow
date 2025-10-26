@@ -2,6 +2,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AppError {
+    #[error("Authentication Error: {0}")]
+    Auth(String),
+
     #[error("Configuration Error: {0}")]
     Config(String),
 

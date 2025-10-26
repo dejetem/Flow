@@ -15,36 +15,37 @@ use space::Entity as Space;
 pub async fn new_space(db: &DatabaseConnection, dir: &str) -> Result<(), AppError> {
     info!("Setting up space in directory: {}", dir);
 
+    let path = Path::new(dir);
+
+    if !path.exists() {
+        info!("Creating directory: {}", dir);
+        fs::create_dir_all(path).map_err(|e| AppError::IO(e))?;
+    }
+
     let space_key = generate_space_key(dir)?;
     info!("Generated space key: {}", space_key);
 
-    let path = Path::new(dir);
-    if path.exists() {
-        match Space::find()
-            .filter(entity::space::Column::Key.eq(&space_key))
-            .one(db)
-            .await
-        {
-            Ok(Some(_existing_space)) => {
-                info!(
-                    "Space already exists at directory: {} (key: {})",
-                    dir, space_key
-                );
-                return Ok(());
-            }
-            Ok(None) => {
-                warn!(
-                    "Directory exists but no space record found. Creating space record for: {}",
-                    dir
-                );
-            }
-            Err(e) => {
-                return Err(AppError::Storage(Box::new(e)));
-            }
+    match Space::find()
+        .filter(entity::space::Column::Key.eq(&space_key))
+        .one(db)
+        .await
+    {
+        Ok(Some(_existing_space)) => {
+            info!(
+                "Space already exists at directory: {} (key: {})",
+                dir, space_key
+            );
+            return Ok(());
         }
-    } else {
-        info!("Creating directory: {}", dir);
-        fs::create_dir_all(path).map_err(|e| AppError::IO(e))?;
+        Ok(None) => {
+            warn!(
+                "Directory exists but no space record found. Creating space record for: {}",
+                dir
+            );
+        }
+        Err(e) => {
+            return Err(AppError::Storage(Box::new(e)));
+        }
     }
 
     let canonical_location = path

@@ -7,7 +7,7 @@
     *   Specify:
         *   Interface (inputs, outputs, function signature).
         *   Context needs (required KG data, schemas).
-        *   Constraints (UCAN capabilities needed, resource limits, privacy rules).
+        *   Constraints (VC capabilities needed, resource limits, privacy rules).
         *   Proof requirements (e.g., zkDL proof, TEE attestation needed).
 *   **Enables:** Verifiable, composable, and explainable use of external functions/models within Flow DAGs and agent reasoning.
 
@@ -21,7 +21,7 @@
 ## Federated Composition
 
 *   Agents can merge, fork, and snapshot graph partitions using CRDT mechanisms.
-*   UCANs control sharing permissions and redaction rules during federation.
+*   VCs control sharing permissions and redaction rules during federation.
 *   Supports multi-agent planning and shared contextual understanding.
 
 ## Querying
@@ -31,7 +31,7 @@
     *   SPARQL-lite (subset)
     *   JSONPath / DAGPath
 *   Queries operate over local, federated, or historical graph snapshots.
-*   Queries are UCAN-gated for access control.
+*   Queries are VC-gated for access control.
 *   Supports privacy-preserving query mechanisms.
 *   Allows live subscriptions to graph changes.
 
@@ -46,4 +46,4 @@
 
 *   Policy-driven redaction (omission, masking) based on compliance tags (GDPR, HIPAA, etc.).
 *   Supports reasoning over masked or redacted data where appropriate.
-*   Enforces data retention policies defined in the graph or via UCANs.
+*   Enforces data retention policies defined in the graph or via VCs.

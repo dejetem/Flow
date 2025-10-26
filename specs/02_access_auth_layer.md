@@ -3,10 +3,10 @@
 ## Design Goals
 
 *   **DID-Native:** Use Decentralized Identifiers as the foundation for all actors.
-*   **Capability-Based:** Employ UCANs (User Controlled Authorization Networks) for granular permissions.
+*   **Capability-Based:** Employ VCs (Verifiable Credentials) for granular permissions.
 *   **Delegation-First:** Natively support secure delegation of capabilities.
 *   **Verifiable Consent & Auditability:** Ensure actions are explicitly authorized and trackable.
-*   **Interoperable:** Align with W3C standards (DIDs) and emerging patterns (UCANs).
+*   **Interoperable:** Align with W3C standards (DIDs) and emerging patterns (VCs).
 
 ## Identity Model (DIDs)
 
@@ -16,29 +16,29 @@
 *   **Resolution:** Mechanisms to resolve DIDs to their corresponding DID documents.
 *   **Linking:** Methods for linking DIDs across different methods or associating them with traditional identifiers if needed.
 
-## Capability Authorization (UCANs)
+## Capability Authorization (VCs)
 
-*   **Core Mechanism:** UCANs are the primary way permissions are granted and verified.
+*   **Core Mechanism:** VCs are the primary way permissions are granted and verified.
 *   **Structure:** Signed tokens (typically JWTs) containing:
     *   `iss`: Issuer DID (who granted the capability).
     *   `aud`: Audience DID (who received the capability).
     *   `att`: Attenuations - List of specific capabilities granted (e.g., `{ can: "crud/write", with: "kg://did:../object-cid" }`).
-    *   `prf`: Proofs - Chain of parent UCANs justifying the grant.
+    *   `prf`: Proofs - Chain of parent VCs justifying the grant.
     *   `exp`: Expiration time.
     *   `nbf`: Not-before time.
     *   `nnc`: Nonce (optional, for replay prevention).
     *   `fct`: Facts (optional, contextual information).
-*   **Capabilities (`can`):** Define actions (e.g., `kg/read`, `compute/execute`, `storage/sync`, `ucan/delegate`).
+*   **Capabilities (`can`):** Define actions (e.g., `kg/read`, `compute/execute`, `storage/sync`, `vc/delegate`).
 *   **Resource (`with`):** Specifies the target resource (e.g., KG object CID, storage namespace, agent DID, task type).
-*   **Chaining (`prf`):** Enables delegation by linking UCANs. A UCAN is valid only if its entire proof chain is valid and unexpired.
-*   **Runtime Enforcement:** Integrated into all other layers (Storage, Compute, Network, KG) to check UCAN validity before allowing actions.
+*   **Chaining (`prf`):** Enables delegation by linking VCs. A VC is valid only if its entire proof chain is valid and unexpired.
+*   **Runtime Enforcement:** Integrated into all other layers (Storage, Compute, Network, KG) to check VC validity before allowing actions.
 
 ## Consent & Delegation
 
-*   **Explicit Consent:** Mechanisms for users/agents to grant specific, often time-bound or single-use, permissions, potentially represented as specialized UCANs or signed consent tokens.
-*   **Verifiable Delegation:** UCAN chaining provides a verifiable audit trail of how capabilities were delegated.
+*   **Explicit Consent:** Mechanisms for users/agents to grant specific, often time-bound or single-use, permissions, potentially represented as specialized VCs or signed consent tokens.
+*   **Verifiable Delegation:** VC chaining provides a verifiable audit trail of how capabilities were delegated.
 *   **Human-in-the-Loop:** UI/UX Layer facilitates clear consent prompts and management of delegations.
-*   **Revocation:** Mechanisms for invalidating UCANs or entire delegation chains (e.g., via revocation lists, time expiry, explicit revocation messages).
+*   **Revocation:** Mechanisms for invalidating VCs or entire delegation chains (e.g., via revocation lists, time expiry, explicit revocation messages).
 
 ## Trust Scoring & Reputation
 
@@ -67,16 +67,16 @@
 *   A2A protocols (potentially DIDComm-like) for structured message exchange.
 *   Mutual authentication using DIDs.
 *   Session negotiation and establishment.
-*   Exchange of intent and capabilities using UCANs within messages or sessions.
-*   Trust evaluation based on peer DID, presented UCANs, and reputation scores.
+*   Exchange of intent and capabilities using VCs within messages or sessions.
+*   Trust evaluation based on peer DID, presented VCs, and reputation scores.
 
 ## Fine-Grained Policies
 
-*   Ability to define access control policies beyond basic UCAN grants:
+*   Ability to define access control policies beyond basic grants:
     *   Object-level permissions within the KG.
     *   Schema-based access rules.
     *   Programmable policies (e.g., using JSON, DSL, or potentially WASM modules).
-*   Policy evaluation engine integrates with UCAN verification.
+*   Policy evaluation engine integrates with VC verification.
 *   Enforcement points distributed across layers.
 
 ## APIs & SDKs
@@ -84,10 +84,10 @@
 Provides core modules/libraries via SDKs (TS, Python, Rust, Go) and potentially a CLI (`flow auth`):
 
 *   `identity`: DID creation, resolution, management.
-*   `ucan`: UCAN creation, validation, parsing, delegation.
+*   `ssi`: SSI, VC creation, validation, parsing, delegation.
 *   `consent`: Managing user consent flows and tokens.
 *   `access`: High-level functions for checking permissions (`canAct(actorDID, action, resourceDID)`).
 *   `trust`: Querying/updating reputation and trust scores.
-*   `audit`: Accessing logs related to authorization decisions and UCAN usage.
+*   `audit`: Accessing logs related to authorization decisions and credential usage.
 *   `keyring`: Secure key management interfaces.
 *   `identityBridge`: Optional module for linking DIDs to existing identity systems.
